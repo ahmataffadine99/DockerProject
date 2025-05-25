@@ -89,30 +89,27 @@ services:
 
   # Service Frontend (Vue.js)
   frontend:
-        build:
-          context: ./frontend
-          dockerfile: Dockerfile
-        container_name: frontend-app-dev
-        ports:
-          - "8080:80" # Mappe le port 8080 de l'hôte au port 80 du conteneur Nginx
-        volumes:
-          - ./frontend:/app
-          - /app/node_modules
-        environment:
-          # Variables d'environnement pour que le frontend puisse appeler les backends
-          # Ces URLs sont accessibles depuis le navigateur de l'hôte
-          - VUE_APP_AUTH_SERVICE_URL=http://localhost:3001 # CHANGÉ !
-          - VUE_APP_PRODUCT_SERVICE_URL=http://localhost:3000 # CHANGÉ !
-          - VUE_APP_ORDER_SERVICE_URL=http://localhost:3002 # CHANGÉ !
-          - NODE_ENV=development
-        depends_on:
-          - auth-service
-          - product-service
-          - order-service
-        networks:
-          - app-network
-        restart: always
-    
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend-app-dev
+    ports:
+      - "8080:80" # Mappe le port 8080 de l'hôte au port 80 du conteneur Nginx
+    # Volumes pour le hot-reload du frontend (si votre setup Vue.js le supporte via webpack-dev-server)
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules # Pour éviter de copier les node_modules de l'hôte
+    environment:
+      # Les variables VUE_APP_..._SERVICE_URL sont maintenant gérées par le fichier .env du frontend
+      # et le proxy Nginx. Seule la variable NODE_ENV est conservée ici.
+      - NODE_ENV=development # Pour le mode développement de Vue.js
+    depends_on:
+      - auth-service
+      - product-service
+      - order-service
+    networks:
+      - app-network
+    restart: always
 
 # Définition des réseaux
 networks:
@@ -122,4 +119,3 @@ networks:
 # Définition des volumes persistants
 volumes:
   mongodb_data: # Volume pour les données MongoDB
-  # mongodb_products_data: # Supprimé car non utilisé dans cette configuration
