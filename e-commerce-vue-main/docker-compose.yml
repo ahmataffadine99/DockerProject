@@ -1,0 +1,75 @@
+services:
+  mongodb:
+    image: mongo:4.4
+    container_name: mongodb-auth
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - app-network
+
+  auth-service:
+    image: auth-service
+    container_name: auth-service
+    ports:
+      - "3001:3001"
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017/auth_db
+    depends_on:
+      - mongodb
+    networks:
+      - app-network
+
+  product-service:
+    build:
+      context: ./services/product-service
+      dockerfile: Dockerfile
+    container_name: product-service
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - MONGODB_URI=mongodb://mongodb:27017/ecommerce 
+    depends_on:
+      - mongodb
+    networks:
+      - app-network
+
+  order-service:
+    build:
+      context: ./services/order-service
+      dockerfile: Dockerfile
+    container_name: order-service
+    ports:
+      - "3002:3002"
+    environment:
+      - PORT=3002
+      - MONGODB_URI=mongodb://mongodb:27017/orders 
+      - JWT_SECRET=efrei_super_pass
+      - VITE_PRODUCT_SERVICE_URL=http://product-service:3000 
+      - NODE_ENV=development
+    depends_on:
+      - mongodb
+    networks:
+      - app-network
+ 
+  frontend:
+    build:
+      context: ./frontend 
+      dockerfile: Dockerfile       
+    container_name: frontend-app
+    ports:
+      - "8080:80" 
+    networks:
+      - app-network
+    depends_on:
+      - auth-service 
+    
+networks:
+    app-network:
+     driver: bridge
+ 
+volumes:
+  mongodb_data:
+  mongodb_products_data:
