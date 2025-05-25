@@ -1,75 +1,125 @@
 services:
+  # Service MongoDB pour les microservices
   mongodb:
     image: mongo:4.4
-    container_name: mongodb-auth
+    container_name: mongodb-dev
+    # Mappe le port 27017 du conteneur au port 27017 de l'hôte
     ports:
       - "27017:27017"
+    # Volume persistant pour les données MongoDB
     volumes:
       - mongodb_data:/data/db
+    # Connecte le service au réseau d'application
     networks:
       - app-network
+    # Redémarre le conteneur si il s'arrête (utile en dev)
+    restart: always
 
+  # Service d'authentification
   auth-service:
-    image: auth-service
-    container_name: auth-service
+    # Spécifie le contexte de build et le Dockerfile
+    build:
+      context: ./services/auth-service
+      dockerfile: Dockerfile
+    container_name: auth-service-dev
+    # Mappe le port 3001 du conteneur au port 3001 de l'hôte
     ports:
       - "3001:3001"
+    # Volumes pour le hot-reload: monte le code source local dans le conteneur
+    volumes:
+      - ./services/auth-service:/app
+      # Optionnel: volume pour les node_modules pour éviter de les re-télécharger sur l'hôte
+      - /app/node_modules
+    # Variables d'environnement pour le service
     environment:
       - MONGODB_URI=mongodb://mongodb:27017/auth_db
+      - PORT=3001
+      - NODE_ENV=development # Spécifie l'environnement de développement
+    # Dépend du service MongoDB
     depends_on:
       - mongodb
+    # Connecte le service au réseau d'application
     networks:
       - app-network
+    restart: always
 
+  # Service de produits
   product-service:
     build:
       context: ./services/product-service
       dockerfile: Dockerfile
-    container_name: product-service
+    container_name: product-service-dev
     ports:
       - "3000:3000"
+    volumes:
+      - ./services/product-service:/app
+      - /app/node_modules
     environment:
       - PORT=3000
-      - MONGODB_URI=mongodb://mongodb:27017/ecommerce 
-    depends_on:
-      - mongodb
-    networks:
-      - app-network
-
-  order-service:
-    build:
-      context: ./services/order-service
-      dockerfile: Dockerfile
-    container_name: order-service
-    ports:
-      - "3002:3002"
-    environment:
-      - PORT=3002
-      - MONGODB_URI=mongodb://mongodb:27017/orders 
-      - JWT_SECRET=efrei_super_pass
-      - VITE_PRODUCT_SERVICE_URL=http://product-service:3000 
+      - MONGODB_URI=mongodb://mongodb:27017/ecommerce
       - NODE_ENV=development
     depends_on:
       - mongodb
     networks:
       - app-network
- 
-  frontend:
+    restart: always
+
+  # Service de commande
+  order-service:
     build:
-      context: ./frontend 
-      dockerfile: Dockerfile       
-    container_name: frontend-app
+      context: ./services/order-service
+      dockerfile: Dockerfile
+    container_name: order-service-dev
     ports:
-      - "8080:80" 
+      - "3002:3002"
+    volumes:
+      - ./services/order-service:/app
+      - /app/node_modules
+    environment:
+      - PORT=3002
+      - MONGODB_URI=mongodb://mongodb:27017/orders
+      - JWT_SECRET=efrei_super_pass
+      - VITE_PRODUCT_SERVICE_URL=http://product-service:3000 # URL interne au réseau Docker
+      - NODE_ENV=development
+    depends_on:
+      - mongodb
     networks:
       - app-network
-    depends_on:
-      - auth-service 
+    restart: always
+
+  # Service Frontend (Vue.js)
+  frontend:
+        build:
+          context: ./frontend
+          dockerfile: Dockerfile
+        container_name: frontend-app-dev
+        ports:
+          - "8080:80" # Mappe le port 8080 de l'hôte au port 80 du conteneur Nginx
+        volumes:
+          - ./frontend:/app
+          - /app/node_modules
+        environment:
+          # Variables d'environnement pour que le frontend puisse appeler les backends
+          # Ces URLs sont accessibles depuis le navigateur de l'hôte
+          - VUE_APP_AUTH_SERVICE_URL=http://localhost:3001 # CHANGÉ !
+          - VUE_APP_PRODUCT_SERVICE_URL=http://localhost:3000 # CHANGÉ !
+          - VUE_APP_ORDER_SERVICE_URL=http://localhost:3002 # CHANGÉ !
+          - NODE_ENV=development
+        depends_on:
+          - auth-service
+          - product-service
+          - order-service
+        networks:
+          - app-network
+        restart: always
     
+
+# Définition des réseaux
 networks:
-    app-network:
-     driver: bridge
- 
+  app-network:
+    driver: bridge # Utilise un réseau bridge pour la communication interne
+
+# Définition des volumes persistants
 volumes:
-  mongodb_data:
-  mongodb_products_data:
+  mongodb_data: # Volume pour les données MongoDB
+  # mongodb_products_data: # Supprimé car non utilisé dans cette configuration
