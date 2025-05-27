@@ -1,7 +1,7 @@
 # --- Étape 1: Builder (pour installer les dépendances et préparer l'application) ---
 # Utilise une image Node.js Alpine pour une taille réduite
 FROM node:18-alpine AS builder
-
+#FROM node:20-slim AS builder
 # Définit le répertoire de travail à l'intérieur du conteneur
 WORKDIR /app
 
@@ -19,6 +19,8 @@ COPY . .
 # --- Étape 2: Production (Image finale optimisée et sécurisée) ---
 # Utilise la même image Node.js Alpine pour la production
 FROM node:18-alpine
+#FROM node:20-slim 
+
 
 # Définit le répertoire de travail
 WORKDIR /app
@@ -27,12 +29,17 @@ WORKDIR /app
 # L'UID 1001 est un choix courant pour les utilisateurs non-root
 RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
 
+
 # Copie uniquement les fichiers nécessaires depuis l'étape 'builder'
 # Cela inclut les dépendances (production seulement) et le code source
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/src ./src
 COPY --from=builder /app/package*.json ./
 
+COPY --from=builder /app/jest.config.cjs ./
+
+COPY --from=builder /app/tests ./tests
+RUN chown -R appuser:appgroup /app
 # Définit l'environnement comme production
 ENV NODE_ENV=production
 
@@ -45,29 +52,7 @@ USER appuser
 # Commande pour démarrer le service en production
 CMD ["node", "src/app.js"]
 
-# --- Fichier .dockerignore (à placer à la racine de votre dossier services/auth-service) ---
-# node_modules
-# npm-debug.log
-# .git
-# .gitignore
-# .vscode
-# *.log
-# Dockerfile
-# docker-compose.yml
 
 
 
 
-#FROM node:18-alpine
-
-#WORKDIR /app
-
-#COPY services/auth-service/package*.json ./
-
-#RUN npm install
-
-#COPY services/auth-service/. .
-
-#EXPOSE 3001
-
-#CMD ["node", "src/app.js"]

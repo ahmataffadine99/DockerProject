@@ -8,6 +8,7 @@ const router = express.Router();
 router.get('/', async (req, res) => {
   try {
     const userId = req.headers.userid; // Envoyé depuis le frontend
+    console.log('GET /api/cart - Valeur de req.headers.userid :', userId); // <-- AJOUTEZ CETTE LIGNE
     let cart = await Cart.findOne({ userId }).populate('items.productId');
     
     if (!cart) {

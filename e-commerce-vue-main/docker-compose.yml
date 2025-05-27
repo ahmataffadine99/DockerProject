@@ -111,6 +111,10 @@ services:
       - app-network
     restart: always
 
+
+
+    # --- NOUVEAU SERVICE POUR LES TESTS DE L'AUTH-SERVICE ---
+
 # Définition des réseaux
 networks:
   app-network:
