@@ -1,0 +1,106 @@
+services:
+  # --- Service MongoDB de Production ---
+  mongodb-prod:
+    image: mongo:4.4
+    container_name: mongodb-prod
+    restart: always
+    volumes:
+      - mongodb_data_prod:/data/db
+    #environment:
+     # MONGO_INITDB_ROOT_USERNAME: affadine # 
+      #MONGO_INITDB_ROOT_PASSWORD: Affadine99 # 
+      #MONGO_INITDB_DATABASE: ecommerce_main_db_prod 
+    networks:
+      - app-network-prod
+
+  # --- Service d'authentification (Utilisateurs) ---
+  auth-service-prod:
+    build:
+      context: ./services/auth-service
+      dockerfile: Dockerfile
+    image: auth-service:latest
+    container_name: auth-service-prod
+    restart: always
+    ports:
+      - "3001:3001"
+    env_file:
+      - ./services/auth-service/.env.production 
+    #environment:
+      # L'URI de connexion à MongoDB pour le service d'authentification.
+     # MONGO_URI: mongodb://affadine:Affadine99@mongodb-prod:27017/auth_db?authSource=admin # <-- CORRIGÉ : utilise 'auth_db'
+    depends_on:
+      - mongodb-prod
+    networks:
+      - app-network-prod
+
+  # --- Service de produits ---
+  product-service-prod:
+    build:
+      context: ./services/product-service
+      dockerfile: Dockerfile
+    image: product-service:latest
+    container_name: product-service-prod
+    restart: always
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./services/product-service/.env.production # Charge les variables d'environnement de production
+    #environment:
+      # L'URI de connexion à MongoDB pour le service produit.
+     # MONGO_URI: mongodb://affadine:Affadine99@mongodb-prod:27017/ecommerce_main_db_prod?authSource=admin # <-- CONFIRMÉ
+    depends_on:
+      - mongodb-prod
+    networks:
+      - app-network-prod
+
+  # --- Service de commande ---
+  order-service-prod:
+    build:
+      context: ./services/order-service
+      dockerfile: Dockerfile
+    image: order-service:latest
+    container_name: order-service-prod
+    restart: always
+    ports:
+      - "3002:3002"
+    env_file:
+      - ./services/order-service/.env.production  
+    #environment:
+      # Utilise 'orders' comme base de données par défaut pour la connexion du service.
+     # MONGO_URI: mongodb://affadine:Affadine99@mongodb-prod:27017/orders?authSource=admin # <-- CORRIGÉ : utilise 'orders'
+    depends_on:
+      - mongodb-prod
+      - product-service-prod
+    networks:
+      - app-network-prod
+
+  # --- Service Frontend (Vue.js) ---
+  frontend-prod:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: frontend:latest
+    container_name: frontend-prod
+    restart: always
+    ports:
+      - "8080:80"
+    env_file:
+      - ./frontend/.env.production
+    volumes:
+      - ./frontend/nginx.prod.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - auth-service-prod
+      - product-service-prod
+      - order-service-prod
+    networks:
+      - app-network-prod
+
+# Définition des réseaux pour la production
+networks:
+  app-network-prod:
+    driver: bridge # Utilise 'bridge' pour docker compose up simple
+
+# Définition des volumes persistants pour les données des bases de données en production
+volumes:
+  mongodb_data_prod:
+    driver: local
