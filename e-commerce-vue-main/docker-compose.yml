@@ -1,49 +1,49 @@
 services:
-  # Service MongoDB pour les microservices
+  
   mongodb:
     image: mongo:4.4
     container_name: mongodb-dev
-    # Mappe le port 27017 du conteneur au port 27017 de l'hôte
+    
     ports:
       - "27017:27017"
-    # Volume persistant pour les données MongoDB
+    
     volumes:
       - mongodb_data:/data/db
-    # Connecte le service au réseau d'application
+    
     networks:
       - app-network
-    # Redémarre le conteneur si il s'arrête (utile en dev)
+    
     restart: always
 
-  # Service d'authentification
+  
   auth-service:
-    # Spécifie le contexte de build et le Dockerfile
+
     build:
       context: ./services/auth-service
       dockerfile: Dockerfile
     container_name: auth-service-dev
-    # Mappe le port 3001 du conteneur au port 3001 de l'hôte
+    
     ports:
       - "3001:3001"
-    # Volumes pour le hot-reload: monte le code source local dans le conteneur
+   
     volumes:
       - ./services/auth-service:/app
-      # Optionnel: volume pour les node_modules pour éviter de les re-télécharger sur l'hôte
+     
       - /app/node_modules
-    # Variables d'environnement pour le service
+    
     environment:
       - MONGODB_URI=mongodb://mongodb:27017/auth_db
       - PORT=3001
-      - NODE_ENV=development # Spécifie l'environnement de développement
-    # Dépend du service MongoDB
+      - NODE_ENV=development 
+
     depends_on:
       - mongodb
-    # Connecte le service au réseau d'application
+    
     networks:
       - app-network
     restart: always
 
-  # Service de produits
+  
   product-service:
     build:
       context: ./services/product-service
@@ -64,7 +64,7 @@ services:
       - app-network
     restart: always
 
-  # Service de commande
+  
   order-service:
     build:
       context: ./services/order-service
@@ -79,7 +79,7 @@ services:
       - PORT=3002
       - MONGODB_URI=mongodb://mongodb:27017/orders
       - JWT_SECRET=efrei_super_pass
-      - VITE_PRODUCT_SERVICE_URL=http://product-service:3000 # URL interne au réseau Docker
+      - VITE_PRODUCT_SERVICE_URL=http://product-service:3000 
       - NODE_ENV=development
     depends_on:
       - mongodb
@@ -87,22 +87,20 @@ services:
       - app-network
     restart: always
 
-  # Service Frontend (Vue.js)
+  
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: frontend-app-dev
     ports:
-      - "8080:80" # Mappe le port 8080 de l'hôte au port 80 du conteneur Nginx
-    # Volumes pour le hot-reload du frontend (si votre setup Vue.js le supporte via webpack-dev-server)
+      - "8080:80" 
     volumes:
       - ./frontend:/app
-      - /app/node_modules # Pour éviter de copier les node_modules de l'hôte
+      - /app/node_modules #
     environment:
-      # Les variables VUE_APP_..._SERVICE_URL sont maintenant gérées par le fichier .env du frontend
-      # et le proxy Nginx. Seule la variable NODE_ENV est conservée ici.
-      - NODE_ENV=development # Pour le mode développement de Vue.js
+      
+      - NODE_ENV=development 
     depends_on:
       - auth-service
       - product-service
@@ -111,15 +109,10 @@ services:
       - app-network
     restart: always
 
-
-
-    # --- NOUVEAU SERVICE POUR LES TESTS DE L'AUTH-SERVICE ---
-
-# Définition des réseaux
 networks:
   app-network:
-    driver: bridge # Utilise un réseau bridge pour la communication interne
+    driver: bridge 
 
-# Définition des volumes persistants
+
 volumes:
-  mongodb_data: # Volume pour les données MongoDB
+  mongodb_data: 
