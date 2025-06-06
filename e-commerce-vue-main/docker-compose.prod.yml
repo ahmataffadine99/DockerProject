@@ -93,7 +93,7 @@ services:
 
 networks:
   app-network-prod:
-    driver: overlay 
+    driver: bridge
 
 volumes:
   mongodb_data_prod:
