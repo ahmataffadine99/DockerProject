@@ -1,4 +1,6 @@
 FROM node:18-alpine AS builder
+ENV NODE_ENV=development
+ENV NPM_CONFIG_PRODUCTION=false
 
 WORKDIR /app
 
@@ -19,18 +21,3 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80
 
 CMD ["nginx", "-g", "daemon off;"]
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

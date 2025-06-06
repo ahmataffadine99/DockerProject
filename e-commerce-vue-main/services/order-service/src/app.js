@@ -3,11 +3,18 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { connectDB } from './config/database.js';
 import orderRoutes from './routes/orderRoutes.js';
+import client from 'prom-client';
 
 dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3002;
+
+client.collectDefaultMetrics();
+app.get('/metrics', async (req, res) => {
+  res.set('Content-Type', client.register.contentType);
+  res.end(await client.register.metrics());
+});
 
 // Connexion à la base de données seulement si pas en mode test
 if (process.env.NODE_ENV !== 'test') {
@@ -27,6 +34,14 @@ app.get('/api/health', (req, res) => {
 });
 
 if (process.env.NODE_ENV !== 'test') {
+  app.get('/health', (req, res) => {
+    res.status(200).json({
+        status: 'OK',
+        service: 'product-service',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime()
+    });
+  });
   app.listen(port, () => {
     console.log(`Order service running on port ${port}`);
   });

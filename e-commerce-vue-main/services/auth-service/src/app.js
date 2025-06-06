@@ -3,11 +3,19 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { connectDB } from './config/database.js';
 import authRoutes from './routes/authRoutes.js';
+import client from 'prom-client';
 
 dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3001;
+
+client.collectDefaultMetrics();
+
+app.get('/metrics', async (req, res) => {
+  res.set('Content-Type', client.register.contentType);
+  res.end(await client.register.metrics());
+});
 
 // Ne pas connecter MongoDB si en mode test
 if (process.env.NODE_ENV !== 'test') {
@@ -15,7 +23,7 @@ if (process.env.NODE_ENV !== 'test') {
 }
 
 app.use(cors({
-  origin: 'http://localhost:8080', // Remplacez par l'URL exacte du frontend
+  origin: 'http://localhost:8080',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
@@ -42,6 +50,14 @@ app.get('/api/auth/ping', (req, res) => {
   res.json({ message: 'Auth service is reachable' });
 });
 if (process.env.NODE_ENV !== 'test') {
+  app.get('/health', (req, res) => {
+    res.status(200).json({
+      status: 'OK',
+      service: 'auth-service',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime()
+    });
+  });
   app.listen(port, () => {
     console.log(`Auth service running on port ${port}`);
   });

@@ -1,0 +1,23 @@
+# Node modules
+node_modules
+
+# Build output
+dist
+
+# Git
+.git
+.gitignore
+
+# Docker artifacts
+Dockerfile*
+docker-compose*
+
+# Environment files
+.env*
+
+# VSCode
+.vscode
+
+# Logs
+npm-debug.log*
+yarn-error.log*

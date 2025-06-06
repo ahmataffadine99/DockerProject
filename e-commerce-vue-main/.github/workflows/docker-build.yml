@@ -1,0 +1,51 @@
+name: CI - Build & Push Docker Images
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*.*.*'  # par exemple v1.0.0
+
+env:
+  REGISTRY_URL: registry.example.com
+  REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+  REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v3
+
+      - name: Log in to Registry
+        run: |
+          echo "${{ secrets.REGISTRY_PASSWORD }}" | docker login ${{ env.REGISTRY_URL }} -u ${{ env.REGISTRY_USERNAME }} --password-stdin
+
+      - name: Build & Push auth-service
+        working-directory: ./services/auth-service
+        run: |
+          docker build -f Dockerfile -t ${{ env.REGISTRY_URL }}/auth-service:latest .
+          docker push ${{ env.REGISTRY_URL }}/auth-service:latest
+
+      - name: Build & Push product-service
+        working-directory: ./services/product-service
+        run: |
+          docker build -f Dockerfile -t ${{ env.REGISTRY_URL }}/product-service:latest .
+          docker push ${{ env.REGISTRY_URL }}/product-service:latest
+
+      - name: Build & Push order-service
+        working-directory: ./services/order-service
+        run: |
+          docker build -f Dockerfile -t ${{ env.REGISTRY_URL }}/order-service:latest .
+          docker push ${{ env.REGISTRY_URL }}/order-service:latest
+
+      - name: Build & Push frontend
+        working-directory: ./frontend
+        run: |
+          docker build -f Dockerfile -t ${{ env.REGISTRY_URL }}/frontend:latest .
+          docker push ${{ env.REGISTRY_URL }}/frontend:latest
+
+      - name: Logout from Registry
+        run: docker logout ${{ env.REGISTRY_URL }}

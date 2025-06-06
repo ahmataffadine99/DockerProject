@@ -109,10 +109,38 @@ services:
       - app-network
     restart: always
 
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus-dev
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    depends_on:
+      - auth-service
+      - product-service
+      - order-service
+    networks:
+      - app-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana-dev
+    ports:
+      - "3003:3000"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - app-network
+
 networks:
   app-network:
     driver: bridge 
 
 
 volumes:
-  mongodb_data: 
+  mongodb_data:
+  grafana_data:

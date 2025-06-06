@@ -4,11 +4,18 @@ import dotenv from 'dotenv';
 import { connectDB } from './config/database.js';
 import productRoutes from './routes/productRoutes.js';
 import cartRoutes from './routes/cartRoutes.js';
+import client from 'prom-client';
 
 dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3000;
+
+client.collectDefaultMetrics();
+app.get('/metrics', async (req, res) => {
+  res.set('Content-Type', client.register.contentType);
+  res.end(await client.register.metrics());
+});
 
 console.log(`App starting with NODE_ENV=${process.env.NODE_ENV}`);
 
@@ -31,6 +38,14 @@ app.get('/api/health', (req, res) => {
 });
 
 if (process.env.NODE_ENV !== 'test') {
+  app.get('/health', (req, res) => {
+    res.status(200).json({
+        status: 'OK',
+        service: 'order-service',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime()
+    });
+  });
   app.listen(port, () => {
     console.log(`Product service running on port ${port}`);
   });
